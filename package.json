@@ -6,8 +6,7 @@
   "scripts": {
     "start": "NODE_ENV=production node index.js",
     "dev": "NODE_ENV=development nodemon index.js",
-    "test": "NODE_ENV=test node --test",
-    "lint": "eslint ."
+    "test": "NODE_ENV=test node --test"
   },
   "author": "",
   "license": "ISC",
@@ -20,7 +19,6 @@
   },
   "devDependencies": {
     "@stylistic/eslint-plugin-js": "^1.7.0",
-    "eslint": "^9.0.0",
     "nodemon": "^3.1.0",
     "supertest": "^6.3.4"
   }
