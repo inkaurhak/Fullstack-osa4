@@ -1,0 +1,10 @@
+POST http://localhost:3003/api/blogs
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImJsb2dMb3ZlciIsImlkIjoiNjYxZWM5MzE0NDc5NjgyN2NiOThiYWM0IiwiaWF0IjoxNzEzMjkzNjczLCJleHAiOjE3MTMyOTcyNzN9.lRNm9-tWe1Khg8AH3nsh6XKPVI5r56uQangA2FWr-Qs
+
+{
+    "title": "Food Blog",
+    "author": "Ramsay",
+    "url": "www.blog.com",
+    "likes": 59
+}

@@ -5,6 +5,8 @@ const supertest = require('supertest')
 const app = require('../app')
 const helper = require('./test_helper')
 const Blog = require('../models/blog')
+const bcrypt = require('bcrypt')
+const User = require('../models/user')
 
 const api = supertest(app)
 
@@ -36,6 +38,7 @@ describe('when there is initially some blogs saved', () => {
 })
 
 describe('adding new blogs', () => {
+  // korjattava testi! lisää login
   test('a blog can be added', async () => {
     const newBlog = {
       title: "First class tests",
@@ -56,6 +59,7 @@ describe('adding new blogs', () => {
     assert(contents.includes("First class tests"))
   })
 
+  // korjattava testi
   test('likes is 0 if it is not given a value', async () => {
     const newBlog = {
       title: "First class tests",
@@ -142,6 +146,105 @@ describe('deleting or updating a blog', () => {
     const updatedBlog = blogsAtEnd[0]
   
     assert.strictEqual(updatedBlog.likes, blogToUpdate.likes+ 10)
+  })
+})
+
+describe('when there is initially one user at db', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('salainen', 10)
+    const user = new User({ username: 'root', passwordHash })
+
+    await user.save()
+  })
+
+  test('creation succeeds with a fresh username', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'inkaurhak',
+      name: 'Inka Häkkänen',
+      password: 'sala',
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1)
+
+    const usernames = usersAtEnd.map(u => u.username)
+    assert(usernames.includes(newUser.username))
+  })
+
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+
+    assert(result.body.error.includes('expected `username` to be unique'))
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+
+  test('user is not created if username is under 3 characters long', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'a',
+      name: 'Anna',
+      password: 'salasana'
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+    
+    const usersAtEnd = await helper.usersInDb()
+
+    assert(result.body.error.includes('User validation failed'))
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+
+  test('user is not created if password is under 3 characters long', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'Anna123',
+      name: 'Anna',
+      password: 'a'
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+    
+    const usersAtEnd = await helper.usersInDb()
+
+    assert(result.body.error.includes('password is too short'))
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
   })
 })
 
