@@ -15,8 +15,8 @@ beforeEach(async () => {
   await Blog.insertMany(helper.initialBlogs)
 })
 
-describe('when there is initially some blogs saved', () => {
-  test('correct amount of blogs returned as json', async () => {
+describe.only('when there is initially some blogs saved', () => {
+  test.only('correct amount of blogs returned as json', async () => {
     await api
       .get('/api/blogs')
       .expect(200)
@@ -57,6 +57,10 @@ describe('adding new blogs', () => {
     const contents = response.body.map(r => r.title)
     assert.strictEqual(response.body.length, helper.initialBlogs.length + 1)
     assert(contents.includes("First class tests"))
+  })
+
+  test('blog can not be added if there is no token', async () => {
+    //testi
   })
 
   // korjattava testi
@@ -110,6 +114,7 @@ describe('adding new blogs', () => {
 })
 
 describe('deleting or updating a blog', () => {
+  //korjattava
   test('a blog can be deleted', async () => {
     const blogsAtStart = await helper.blogsInDb()
     const blogToDelete = blogsAtStart[0]
@@ -163,8 +168,8 @@ describe('when there is initially one user at db', () => {
     const usersAtStart = await helper.usersInDb()
 
     const newUser = {
-      username: 'inkaurhak',
-      name: 'Inka Häkkänen',
+      username: 'Anna123',
+      name: 'Anna',
       password: 'sala',
     }
 
