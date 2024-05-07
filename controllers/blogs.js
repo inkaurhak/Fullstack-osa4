@@ -34,7 +34,7 @@ blogsRouter.post('/', middleware.userExtractor, async (request, response) => {
   user.blogs = user.blogs.concat(savedBlog._id)
   await user.save()
 
-  response.json(savedBlog)
+  response.status(201).json(savedBlog)
 })
 
 blogsRouter.delete('/:id', middleware.userExtractor, async (request, response) => {
@@ -45,7 +45,7 @@ blogsRouter.delete('/:id', middleware.userExtractor, async (request, response) =
     await Blog.findByIdAndDelete(request.params.id)
     response.status(204).end()
   } else {
-    return response.status(401).json({ error: 'wrong user' })
+    return response.status(401).json({ error: 'You are not authorized to delete this blog' })
   }
 })
 

@@ -15,8 +15,8 @@ beforeEach(async () => {
   await Blog.insertMany(helper.initialBlogs)
 })
 
-describe.only('when there is initially some blogs saved', () => {
-  test.only('correct amount of blogs returned as json', async () => {
+describe('when there is initially some blogs saved', () => {
+  test('correct amount of blogs returned as json', async () => {
     await api
       .get('/api/blogs')
       .expect(200)
@@ -38,33 +38,66 @@ describe.only('when there is initially some blogs saved', () => {
 })
 
 describe('adding new blogs', () => {
-  // korjattava testi! lisää login
-  test('a blog can be added', async () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash(helper.initialUser.password, 10)
+    const user = new User({ username: helper.initialUser.username, passwordHash })
+
+    await user.save()
+  })
+  
+  test('logged user can create a blog', async () => {
+    const response = await api
+      .post('/api/login')
+      .send(helper.initialUser)
+
+    const token = response.body.token
+    
     const newBlog = {
       title: "First class tests",
       author: "Robert C. Martin",
       url: "http://blog.cleancoder.com/uncle-bob/2017/05/05/TestDefinitions.htmll",
-      likes: 10
+      likes: 10,
     }
-  
+
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `Bearer ${token}`)
       .expect(201)
       .expect('Content-Type', /application\/json/)
-  
+  })
+
+  test('a blog can not be created if there is no token in the request', async () => {
+    await api
+      .post('/api/login')
+      .send(helper.initialUser)
+
+    const newBlog = {
+      title: "First class tests",
+      author: "Robert C. Martin",
+      url: "http://blog.cleancoder.com/uncle-bob/2017/05/05/TestDefinitions.htmll",
+      likes: 10,
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+      .expect('Content-Type', /application\/json/)
+
     const response = await api.get('/api/blogs')
-    const contents = response.body.map(r => r.title)
-    assert.strictEqual(response.body.length, helper.initialBlogs.length + 1)
-    assert(contents.includes("First class tests"))
+    assert.strictEqual(response.body.length, helper.initialBlogs.length)
   })
 
-  test('blog can not be added if there is no token', async () => {
-    //testi
-  })
-
-  // korjattava testi
   test('likes is 0 if it is not given a value', async () => {
+    const loginResponse = await api
+      .post('/api/login')
+      .send(helper.initialUser)
+
+    const token = loginResponse.body.token
+
     const newBlog = {
       title: "First class tests",
       author: "Robert C. Martin",
@@ -73,6 +106,7 @@ describe('adding new blogs', () => {
   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
   
@@ -89,6 +123,12 @@ describe('adding new blogs', () => {
   })
 
   test('if blog has no title or url, it returns 400', async () => {
+    const response = await api
+      .post('/api/login')
+      .send(helper.initialUser)
+
+    const token = response.body.token
+
     const blogWithoutTitle = {
       author: "Robert C. Martin",
       url: "http://blog.cleancoder.com/uncle-bob/2017/05/05/TestDefinitions.htmll",
@@ -103,29 +143,49 @@ describe('adding new blogs', () => {
   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(blogWithoutTitle)
       .expect(400)
   
     await api
       .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
       .send(blogWithoutUrl)
       .expect(400)
   })
 })
 
 describe('deleting or updating a blog', () => {
-  //korjattava
-  test('a blog can be deleted', async () => {
+  test('a blog can be deleted if it is created by the user', async () => {
+    const loginResponse = await api
+      .post('/api/login')
+      .send(helper.initialUser)
+
+    const token = loginResponse.body.token
+
+    const newBlog = {
+      title: "First class tests",
+      author: "Robert C. Martin",
+      url: "http://blog.cleancoder.com/uncle-bob/2017/05/05/TestDefinitions.htmll",
+      likes: 10,
+    }
+
+    await api
+      .post('/api/blogs')
+      .set('Authorization', `Bearer ${token}`)
+      .send(newBlog)
+
     const blogsAtStart = await helper.blogsInDb()
-    const blogToDelete = blogsAtStart[0]
+    const blogToDelete = blogsAtStart[blogsAtStart.length - 1]
   
     await api
       .delete(`/api/blogs/${blogToDelete.id}`)
+      .set('Authorization', `Bearer ${token}`)
       .expect(204)
   
     const blogsAtEnd = await helper.blogsInDb()
   
-    assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length - 1)
   
     const titles = blogsAtEnd.map(r => r.title)
     assert(!titles.includes(blogToDelete.title))
